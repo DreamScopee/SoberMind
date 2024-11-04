@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SoberMind</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="title">SoberMind</div>
+            <div class="xp"><span id="xp">0</span> XP</div>
+        </div>
+
+        <div class="streak-container">
+            <div class="level">Level: <span id="level">Novice</span></div>
+            <div class="streak">
+                <div class="streak-label">Current Streak</div>
+                <div class="streak-value"><span id="streak">0</span> days</div>
+            </div>
+            <div class="progress-bar">
+                <div class="progress" id="progress"></div>
+            </div>
+            <button class="button" id="completeChallenge">Complete Today's Challenge</button>
+            <button class="button relapse" id="relapse">Relapse (Reset Streak)</button>
+        </div>
+    </div>
+
+    <div class="achievement" id="achievement" style="display: none;">
+        <div class="achievement-content">
+            <h2>Level Up!</h2>
+            <p>Congratulations! You've reached a new level!</p>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
