@@ -130,3 +130,68 @@ body {
     text-align: center;
     box-shadow: 0 6px 8px rgba(0, 0, 0, 0.3);
 }
+
+/* Existing CSS remains the same, adding new styles below */
+
+/* Confirmation popup styles */
+.confirmation {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.confirmation-content {
+    background-color: #333;
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.3);
+}
+
+.confirmation-content h2 {
+    margin-bottom: 10px;
+    color: #fff;
+}
+
+.confirmation-content p {
+    color: #fff;
+    margin-bottom: 20px;
+}
+/* Cooldown popup styles */
+.cooldown {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.cooldown-content {
+    background-color: #333;
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.3);
+}
+
+.cooldown-content h2 {
+    margin-bottom: 10px;
+    color: #fff;
+}
+
+.cooldown-content p {
+    color: #fff;
+    margin-bottom: 20px;
+}
