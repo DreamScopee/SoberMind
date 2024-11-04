@@ -23,16 +23,34 @@
                 <div class="progress" id="progress"></div>
             </div>
             <button class="button" id="completeChallenge">Complete Today's Challenge</button>
-            <button class="button relapse" id="relapse">Relapse (Reset Streak)</button>
+            <button class="button relapse" id="relapse">(Reset Streak)</button>
         </div>
     </div>
 
+    <!-- Achievement and Confirmation Popup -->
     <div class="achievement" id="achievement" style="display: none;">
         <div class="achievement-content">
             <h2>Level Up!</h2>
             <p>Congratulations! You've reached a new level!</p>
         </div>
     </div>
+
+    <div class="confirmation" id="confirmation" style="display: none;">
+        <div class="confirmation-content">
+            <h2>Confirm Reset</h2>
+            <p>Are you sure you want to reset your streak?</p>
+            <button id="confirmReset" class="button">Yes, Reset</button>
+            <button id="cancelReset" class="button relapse">Cancel</button>
+        </div>
+    </div>
+  <!-- Cooldown Popup -->
+<div class="cooldown" id="cooldownPopup" style="display: none;">
+    <div class="cooldown-content">
+        <h2>Cooldown Active</h2>
+        <p>You can complete the next challenge in <span class="time-left"></span>.</p>
+    </div>
+</div>
+
 
     <script src="script.js"></script>
 </body>
