@@ -3,55 +3,136 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SoberMind</title>
-    <link rel="stylesheet" href="style.css">
+    <title>StreamX</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
+    <nav class="navbar">
+        <div class="nav-left">
+            <i class="fas fa-bars"></i>
+            <div class="brand">
+                <div class="logo-symbol">
+                    <span class="s-letter">S</span>
+                    <span class="x-letter">X</span>
+                </div>
+                <span class="brand-name">StreamX</span>
+            </div>
+        </div>
+        <div class="nav-middle">
+            <div class="search-box">
+                <input type="text" id="search-input" placeholder="Search">
+                <button id="search-btn"><i class="fas fa-search"></i></button>
+            </div>
+        </div>
+        <div class="nav-right">
+            <i class="fas fa-video"></i>
+            <i class="fas fa-bell"></i>
+            <button class="theme-toggle" id="theme-toggle">
+                <i class="fas fa-sun" id="sun-icon"></i>
+                <i class="fas fa-moon" id="moon-icon" style="display: none;"></i>
+            </button>
+            <i class="fas fa-user"></i>
+        </div>
+    </nav>
+
     <div class="container">
-        <div class="header">
-            <div class="title">SoberMind</div>
-            <div class="xp"><span id="xp">0</span> XP</div>
+        <div class="videos-container" id="videos-container">
+            <!-- Videos will be loaded here -->
         </div>
+        <div class="loader" id="loader"></div>
+    </div>
 
-        <div class="streak-container">
-            <div class="level">Level: <span id="level">Novice</span></div>
-            <div class="streak">
-                <div class="streak-label">Current Streak</div>
-                <div class="streak-value"><span id="streak">0</span> days</div>
+    <!-- Video Player Modal -->
+    <div id="video-player-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-left">
+                <div class="video-primary">
+                    <div id="player"></div>
+                    <h2 id="video-title"></h2>
+                    <div class="video-stats">
+                        <div class="video-actions">
+                            <button><i class="fas fa-thumbs-up"></i> <span id="like-count"></span></button>
+                            <button><i class="fas fa-thumbs-down"></i> <span id="dislike-count"></span></button>
+                            <button><i class="fas fa-share"></i> Share</button>
+                        </div>
+                    </div>
+                    <div class="channel-section">
+                        <div class="channel-info">
+                            <img id="channel-icon" src="" alt="Channel Icon">
+                            <div class="channel-details">
+                                <h3 id="channel-name"></h3>
+                                <p id="subscriber-count"></p>
+                            </div>
+                            <button id="subscribe-btn">Subscribe</button>
+                        </div>
+                        <div class="video-description" id="video-description"></div>
+                    </div>
+                    <div class="comments-section" id="comments-section">
+                        <h3>Comments</h3>
+                        <div class="comments-container" id="comments-container"></div>
+                    </div>
+                    <div class="video-tools">
+                        <button class="tool-btn download-btn" id="download-btn">
+                            <i class="fas fa-download"></i>
+                            Thumbnail
+                        </button>
+                        <button class="tool-btn notes-btn" id="notes-btn">
+                            <i class="fas fa-sticky-note"></i>
+                            Notes
+                        </button>
+                        <button class="tool-btn summary-btn" id="summary-btn">
+                            <i class="fas fa-file-alt"></i>
+                            Summary
+                        </button>
+                    </div>
+                </div>
             </div>
-            <div class="progress-bar">
-                <div class="progress" id="progress"></div>
+            <div class="modal-right">
+                <div class="related-videos" id="related-videos">
+                    <h3>Related Videos</h3>
+                    <!-- Related videos will be loaded here -->
+                </div>
             </div>
-            <button class="button" id="completeChallenge">Complete Today's Challenge</button>
-            <button class="button relapse" id="relapse">(Reset Streak)</button>
         </div>
     </div>
-
-    <!-- Achievement and Confirmation Popup -->
-    <div class="achievement" id="achievement" style="display: none;">
-        <div class="achievement-content">
-            <h2>Level Up!</h2>
-            <p>Congratulations! You've reached a new level!</p>
-        </div>
-    </div>
-
-    <div class="confirmation" id="confirmation" style="display: none;">
-        <div class="confirmation-content">
-            <h2>Confirm Reset</h2>
-            <p>Are you sure you want to reset your streak?</p>
-            <button id="confirmReset" class="button">Yes, Reset</button>
-            <button id="cancelReset" class="button relapse">Cancel</button>
-        </div>
-    </div>
-  <!-- Cooldown Popup -->
-<div class="cooldown" id="cooldownPopup" style="display: none;">
-    <div class="cooldown-content">
-        <h2>Cooldown Active</h2>
-        <p>You can complete the next challenge in <span class="time-left"></span>.</p>
-    </div>
-</div>
-
 
     <script src="script.js"></script>
+    <script>
+        // Event Listeners for video tools
+        document.getElementById("download-btn").addEventListener("click", function() {
+            const thumbnailUrl = document.getElementById("channel-icon").src;
+            const videoTitle = document.getElementById("video-title").textContent;
+            downloadThumbnail(thumbnailUrl, videoTitle);
+        });
+
+        document.getElementById("notes-btn").addEventListener("click", function() {
+            const videoId = document.getElementById("player").dataset.videoId;
+            const videoTitle = document.getElementById("video-title").textContent;
+            toggleNotesPanel(videoId, videoTitle);
+        });
+
+        document.getElementById("summary-btn").addEventListener("click", function() {
+            const videoId = document.getElementById("player").dataset.videoId;
+            const videoTitle = document.getElementById("video-title").textContent;
+            const description = document.getElementById("video-description").textContent;
+            toggleSummaryPanel(videoId, videoTitle, description);
+        });
+
+        // Dark mode toggle
+        document.getElementById("theme-toggle").addEventListener("click", function() {
+            document.body.classList.toggle("dark-mode");
+            const sunIcon = document.getElementById("sun-icon");
+            const moonIcon = document.getElementById("moon-icon");
+            
+            if (document.body.classList.contains("dark-mode")) {
+                sunIcon.style.display = "none";
+                moonIcon.style.display = "inline";
+            } else {
+                sunIcon.style.display = "inline";
+                moonIcon.style.display = "none";
+            }
+        });
+    </script>
 </body>
 </html>
