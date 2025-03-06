@@ -11,6 +11,13 @@ let nextPageToken = '';
 let isLoading = false;
 let hasMoreVideos = true;
 
+// Sketch Feature
+let isDrawing = false;
+let currentColor = '#ff0000';
+let currentSize = 5;
+let currentCanvas = null;
+let currentContext = null;
+
 function initTheme() {
     const theme = localStorage.getItem('theme') || 'light';
     document.documentElement.setAttribute('data-theme', theme);
@@ -230,9 +237,38 @@ function updateVideoDescription(description, thumbnailUrl, videoTitle, videoId) 
                     <i class="fas fa-sticky-note"></i>
                     Notes
                 </button>
+                <button class="tool-btn sketch-btn" onclick="toggleSketchPanel('${videoId}', '${videoTitle.replace(/'/g, "\\'")}')">
+                    <i class="fas fa-paint-brush"></i>
+                    Sketch
+                </button>
                 <button class="tool-btn summary-btn" onclick="toggleSummaryPanel('${videoId}', '${videoTitle.replace(/'/g, "\\'")}', '${description.replace(/'/g, "\\'")}')">
                     <i class="fas fa-file-alt"></i>
                     Summary
+                </button>
+            </div>
+        </div>
+
+        <!-- Sketch Panel -->
+        <div id="sketch-panel-${videoId}" class="sketch-panel hidden">
+            <div class="sketch-header">
+                <h4>Video Sketch</h4>
+                <div class="sketch-tools">
+                    <button class="color-btn" data-color="#ff0000"><i class="fas fa-circle" style="color: #ff0000"></i></button>
+                    <button class="color-btn" data-color="#00ff00"><i class="fas fa-circle" style="color: #00ff00"></i></button>
+                    <button class="color-btn" data-color="#0000ff"><i class="fas fa-circle" style="color: #0000ff"></i></button>
+                    <button class="color-btn" data-color="#ffff00"><i class="fas fa-circle" style="color: #ffff00"></i></button>
+                    <input type="range" id="brush-size" min="1" max="20" value="5">
+                    <button class="clear-btn"><i class="fas fa-trash"></i></button>
+                    <button class="capture-btn"><i class="fas fa-camera"></i></button>
+                    <button class="close-sketch"><i class="fas fa-times"></i></button>
+                </div>
+            </div>
+            <div class="sketch-content">
+                <canvas id="sketch-canvas-${videoId}" class="sketch-canvas"></canvas>
+            </div>
+            <div class="sketch-footer">
+                <button class="export-btn" onclick="exportSketch('${videoId}', '${videoTitle.replace(/'/g, "\\'")}')">
+                    <i class="fas fa-file-export"></i> Export Sketch
                 </button>
             </div>
         </div>
@@ -311,7 +347,30 @@ function updateVideoDescription(description, thumbnailUrl, videoTitle, videoId) 
 // Toggle notes panel
 function toggleNotesPanel(videoId, videoTitle) {
     const notesPanel = document.getElementById(`notes-panel-${videoId}`);
+    const isHidden = notesPanel.classList.contains('hidden');
+    
     notesPanel.classList.toggle('hidden');
+    
+    if (isHidden) {
+        // Load saved notes when panel is opened
+        const savedNotes = localStorage.getItem(`notes_${videoId}`);
+        const notesArea = document.getElementById(`notes-area-${videoId}`);
+        if (savedNotes) {
+            notesArea.value = savedNotes;
+        }
+        
+        // Setup timestamp click handlers
+        setupTimestampClickHandlers(videoId);
+        
+        // Auto-save notes every 30 seconds
+        const autoSaveInterval = setInterval(() => {
+            if (!notesPanel.classList.contains('hidden')) {
+                saveNotes(videoId);
+            } else {
+                clearInterval(autoSaveInterval);
+            }
+        }, 30000);
+    }
 }
 
 // Toggle summary panel
@@ -669,11 +728,276 @@ document.getElementById('search-input').addEventListener('keypress', (e) => {
 window.addEventListener('click', (e) => {
     const modal = document.getElementById('video-player-modal');
     if (e.target === modal) {
-        modal.style.display = 'none';
-        player.destroy();
+        closeVideoModal();
     }
 });
 
 // Add these event listeners
 document.addEventListener('DOMContentLoaded', initTheme);
 document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
+
+// Add timestamp to notes
+function addTimestamp(videoId) {
+    const notesArea = document.getElementById(`notes-area-${videoId}`);
+    const currentTime = player.getCurrentTime();
+    const formattedTime = formatVideoTime(currentTime);
+    
+    // Get cursor position
+    const cursorPos = notesArea.selectionStart;
+    const textBefore = notesArea.value.substring(0, cursorPos);
+    const textAfter = notesArea.value.substring(cursorPos);
+    
+    // Insert timestamp at cursor position
+    const timestampText = `[${formattedTime}] `;
+    notesArea.value = textBefore + timestampText + textAfter;
+    
+    // Move cursor after timestamp
+    const newCursorPos = cursorPos + timestampText.length;
+    notesArea.setSelectionRange(newCursorPos, newCursorPos);
+    notesArea.focus();
+    
+    // Save notes automatically
+    saveNotes(videoId);
+}
+
+// Format video time for timestamps
+function formatVideoTime(seconds) {
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+    
+    if (hrs > 0) {
+        return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+// Save notes to localStorage
+function saveNotes(videoId) {
+    const notesArea = document.getElementById(`notes-area-${videoId}`);
+    const notes = notesArea.value;
+    localStorage.setItem(`notes_${videoId}`, notes);
+    
+    // Show save confirmation
+    const saveBtn = document.querySelector('.save-notes-btn');
+    const originalText = saveBtn.innerHTML;
+    saveBtn.innerHTML = '<i class="fas fa-check"></i> Saved!';
+    setTimeout(() => {
+        saveBtn.innerHTML = originalText;
+    }, 2000);
+}
+
+// Export notes to a text file
+function exportNotes(videoId, videoTitle) {
+    const notes = localStorage.getItem(`notes_${videoId}`);
+    if (!notes) {
+        alert('No notes to export!');
+        return;
+    }
+
+    // Format notes with video information
+    const timestamp = new Date().toLocaleString();
+    const formattedNotes = `Notes for: ${videoTitle}\nVideo ID: ${videoId}\nExported on: ${timestamp}\n\n${notes}`;
+    
+    // Create and trigger download
+    const blob = new Blob([formattedNotes], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${videoTitle}_notes.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+// Add click handlers for timestamps in notes
+function setupTimestampClickHandlers(videoId) {
+    const notesArea = document.getElementById(`notes-area-${videoId}`);
+    
+    notesArea.addEventListener('click', (e) => {
+        const text = notesArea.value;
+        const cursorPos = notesArea.selectionStart;
+        
+        // Find timestamp at cursor position
+        const timestampMatch = text.substring(0, cursorPos).match(/\[(\d+:)?(\d+:\d+)\]/g);
+        if (timestampMatch) {
+            const lastTimestamp = timestampMatch[timestampMatch.length - 1];
+            const timeComponents = lastTimestamp.slice(1, -1).split(':');
+            let seconds = 0;
+            
+            if (timeComponents.length === 3) {
+                seconds = parseInt(timeComponents[0]) * 3600 + 
+                         parseInt(timeComponents[1]) * 60 + 
+                         parseInt(timeComponents[2]);
+            } else {
+                seconds = parseInt(timeComponents[0]) * 60 + 
+                         parseInt(timeComponents[1]);
+            }
+            
+            // Seek to timestamp in video
+            player.seekTo(seconds, true);
+        }
+    });
+}
+
+// Sketch Feature
+function toggleSketchPanel(videoId, videoTitle) {
+    const sketchPanel = document.getElementById(`sketch-panel-${videoId}`);
+    const isHidden = sketchPanel.classList.contains('hidden');
+    
+    sketchPanel.classList.toggle('hidden');
+    
+    if (isHidden) {
+        setupSketch(videoId);
+    }
+}
+
+function setupSketch(videoId) {
+    const canvas = document.getElementById(`sketch-canvas-${videoId}`);
+    const context = canvas.getContext('2d');
+    currentCanvas = canvas;
+    currentContext = context;
+
+    // Set canvas size
+    const videoElement = document.getElementById('player');
+    canvas.width = videoElement.offsetWidth;
+    canvas.height = videoElement.offsetHeight;
+
+    // Setup event listeners
+    setupSketchEventListeners(canvas, context);
+    setupSketchTools(videoId);
+
+    // Capture current frame
+    captureVideoFrame();
+}
+
+function setupSketchEventListeners(canvas, context) {
+    // Mouse events
+    canvas.addEventListener('mousedown', startDrawing);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', stopDrawing);
+    canvas.addEventListener('mouseout', stopDrawing);
+
+    // Touch events
+    canvas.addEventListener('touchstart', handleTouchStart);
+    canvas.addEventListener('touchmove', handleTouchMove);
+    canvas.addEventListener('touchend', stopDrawing);
+}
+
+function setupSketchTools(videoId) {
+    const sketchPanel = document.getElementById(`sketch-panel-${videoId}`);
+    
+    // Color buttons
+    const colorBtns = sketchPanel.querySelectorAll('.color-btn');
+    colorBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            currentColor = btn.dataset.color;
+            colorBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        });
+    });
+
+    // Brush size
+    const brushSize = sketchPanel.querySelector('#brush-size');
+    brushSize.addEventListener('input', (e) => {
+        currentSize = e.target.value;
+    });
+
+    // Clear button
+    const clearBtn = sketchPanel.querySelector('.clear-btn');
+    clearBtn.addEventListener('click', () => {
+        clearCanvas();
+        captureVideoFrame();
+    });
+
+    // Capture button
+    const captureBtn = sketchPanel.querySelector('.capture-btn');
+    captureBtn.addEventListener('click', captureVideoFrame);
+
+    // Close button
+    const closeBtn = sketchPanel.querySelector('.close-sketch');
+    closeBtn.addEventListener('click', () => {
+        sketchPanel.classList.add('hidden');
+    });
+}
+
+function startDrawing(e) {
+    isDrawing = true;
+    draw(e);
+}
+
+function draw(e) {
+    if (!isDrawing) return;
+
+    const rect = currentCanvas.getBoundingClientRect();
+    const x = (e.clientX || e.touches[0].clientX) - rect.left;
+    const y = (e.clientY || e.touches[0].clientY) - rect.top;
+
+    currentContext.lineWidth = currentSize;
+    currentContext.lineCap = 'round';
+    currentContext.strokeStyle = currentColor;
+
+    currentContext.lineTo(x, y);
+    currentContext.stroke();
+    currentContext.beginPath();
+    currentContext.moveTo(x, y);
+}
+
+function stopDrawing() {
+    isDrawing = false;
+    currentContext.beginPath();
+}
+
+function handleTouchStart(e) {
+    e.preventDefault();
+    startDrawing(e.touches[0]);
+}
+
+function handleTouchMove(e) {
+    e.preventDefault();
+    draw(e.touches[0]);
+}
+
+function clearCanvas() {
+    currentContext.clearRect(0, 0, currentCanvas.width, currentCanvas.height);
+}
+
+function captureVideoFrame() {
+    if (!player) return;
+
+    // Create temporary canvas to capture video frame
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = currentCanvas.width;
+    tempCanvas.height = currentCanvas.height;
+    const tempContext = tempCanvas.getContext('2d');
+
+    // Get video element and draw it to temp canvas
+    const videoElement = document.getElementById('player');
+    tempContext.drawImage(videoElement, 0, 0, tempCanvas.width, tempCanvas.height);
+
+    // Draw temp canvas to main canvas
+    clearCanvas();
+    currentContext.drawImage(tempCanvas, 0, 0);
+}
+
+function exportSketch(videoId, videoTitle) {
+    const canvas = document.getElementById(`sketch-canvas-${videoId}`);
+    const timestamp = formatVideoTime(player.getCurrentTime());
+    
+    // Create download link
+    const link = document.createElement('a');
+    link.download = `${videoTitle}_sketch_${timestamp}.png`;
+    link.href = canvas.toDataURL('image/png');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+function closeVideoModal() {
+    const modal = document.getElementById('video-player-modal');
+    modal.style.display = 'none';
+    if (player) {
+        player.destroy();
+    }
+}
